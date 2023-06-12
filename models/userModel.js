@@ -11,9 +11,19 @@ const userSchema = new mongoose.Schema(
             type: String,
             min: 7,
             required: true,
+            unique: true,
         },
-        OTP: {
+        password: {
             type: String,
+            minLenght: 4,
+            required: true,
+        },
+        isActive: {
+            type: Boolean,
+            default: false,
+        },
+        otp: {
+            type: mongoose.Schema.Types.ObjectId,
             ref: "OTP",
         },
     },
