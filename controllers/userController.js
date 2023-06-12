@@ -1,5 +1,6 @@
 //modules
 const client = require("twilio")(process.env.ACCOUNT_SID, process.env.AUTH_TOKEN);
+const moment = require("moment");
 
 //models
 const User = require("../models/userModel");
@@ -34,8 +35,6 @@ const signup = async (req, res) => {
             otp: newOtp._id,
         };
 
-        console.log(otp, " generated otp");
-
         await User.create(newUser);
 
         await client.messages
@@ -68,10 +67,37 @@ const verifyPhoneNumber = async (req, res) => {
             return res.status(404).json({ message: "User not found" });
         }
 
+        // Check if the user has exceeded the OTP entering limit
+        if (user.attempts >= 4) {
+            // Calculate the time difference between the last attempt and the current time
+            const lastAttemptTime = moment(user.lastAttempt);
+            const currentTime = moment();
+            const timeDiffMinutes = currentTime.diff(lastAttemptTime, "minutes");
+
+            // Check if the waiting period of 10 minutes has passed
+            if (timeDiffMinutes < 10) {
+                return res.status(400).json({
+                    message: "OTP entering limit exceeded. Please try again after 10 minutes.",
+                });
+            } else {
+                // Reset the attempts and lastAttempt fields
+                user.attempts = 0;
+                user.lastAttempt = null;
+                await user.save();
+            }
+        }
+
         if (otp !== user.otp.otp) {
+            // Increment the attempts counter and update the lastAttempt field
+            user.attempts++;
+            user.lastAttempt = moment();
+            await user.save();
             return res.status(400).json({ message: "invalid OTP" });
         }
 
+        // Reset the attempts and lastAttempt fields after successful verification
+        user.attempts = 0;
+        user.lastAttempt = null;
         user.isActive = true;
         await user.save();
 

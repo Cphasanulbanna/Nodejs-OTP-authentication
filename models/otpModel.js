@@ -8,13 +8,6 @@ const otpSchema = new mongoose.Schema(
             max: 4,
             required: true,
         },
-        otpAttempts: {
-            type: Number,
-            default: 0,
-        },
-        lastOtpAttempt: {
-            type: Date,
-        },
     },
     { timestamps: true }
 );

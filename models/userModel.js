@@ -22,6 +22,13 @@ const userSchema = new mongoose.Schema(
             type: Boolean,
             default: false,
         },
+        attempts: {
+            type: Number,
+            default: 0,
+        },
+        lastAttempt: {
+            type: Date,
+        },
         otp: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "OTP",
