@@ -29,6 +29,10 @@ const userSchema = new mongoose.Schema(
         lastAttempt: {
             type: Date,
         },
+        resendOtpSentCount: {
+            type: Number,
+            default: 0,
+        },
         otp: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "OTP",

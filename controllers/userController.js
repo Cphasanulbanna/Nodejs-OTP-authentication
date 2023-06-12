@@ -19,9 +19,9 @@ const signup = async (req, res) => {
                 .status(400)
                 .json({ message: "Username, password and Phone number are required" });
         }
-        const isExists = await User.findOne({ username: username });
+        const isExists = await User.findOne({ number: number });
         if (isExists) {
-            return res.status(400).json({ message: "User already exists with username" });
+            return res.status(400).json({ message: "User already exists with this number" });
         }
 
         const otp = generateOtp(4);
@@ -46,6 +46,38 @@ const signup = async (req, res) => {
             .then(() => res.status(200).json({ message: "OTP sent successfully" }));
 
         return res.status(201).json({ message: "Account created" });
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
+
+const resendOtp = async (req, res) => {
+    try {
+        const { number } = req.body;
+        if (!number) {
+            return res.status(400).json({ message: "phone number is required" });
+        }
+
+        const user = await User.findOne({ number: number });
+
+        if (user.resendOtpSentCount >= 3) {
+            return res
+                .status(400)
+                .json({ message: "OTP limit exceeded. Please try again after 10 minutes." });
+        }
+
+        const otp = generateOtp(4);
+        const newOtp = await OTP.create({ otp: otp });
+        user.otp = newOtp._id;
+        user.resendOtpSentCount++;
+        await user.save();
+        await client.messages
+            .create({
+                body: `Your OTP is : ${otp}, please dont share it with anyone`,
+                from: process.env.TWILIO_NUMBER,
+                to: `+91${number}`,
+            })
+            .then(() => res.status(200).json({ message: "OTP sent successfully" }));
     } catch (error) {
         return res.status(500).json({ message: error.message });
     }
@@ -99,6 +131,7 @@ const verifyPhoneNumber = async (req, res) => {
         user.attempts = 0;
         user.lastAttempt = null;
         user.isActive = true;
+        await OTP.findByIdAndDelete(user.otp._id);
         await user.save();
 
         return res.status(200).json({ message: "Account created" });
@@ -139,4 +172,4 @@ const login = async (req, res) => {
     }
 };
 
-module.exports = { signup, verifyPhoneNumber, login };
+module.exports = { signup, verifyPhoneNumber, login, resendOtp };
