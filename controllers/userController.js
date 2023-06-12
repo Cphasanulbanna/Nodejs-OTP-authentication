@@ -60,6 +60,10 @@ const resendOtp = async (req, res) => {
 
         const user = await User.findOne({ number: number });
 
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
         if (user.resendOtpSentCount >= 3) {
             return res
                 .status(400)
@@ -86,6 +90,7 @@ const resendOtp = async (req, res) => {
 const verifyPhoneNumber = async (req, res) => {
     try {
         const { otp, number } = req.body;
+        console.log(otp, number);
         if (!otp) {
             return res.status(404).json({ message: "OTP is required" });
         }
@@ -134,6 +139,13 @@ const verifyPhoneNumber = async (req, res) => {
         await OTP.findByIdAndDelete(user.otp._id);
         await user.save();
 
+        const verifiedUser = await User.findOne({ number: number, isActive: true });
+        if (verifiedUser) {
+            return res
+                .status(400)
+                .json({ message: "An account is already exists with this phone number" });
+        }
+
         return res.status(200).json({ message: "Account created" });
     } catch (error) {
         return res.status(500).json({ message: error.message });
@@ -149,7 +161,7 @@ const login = async (req, res) => {
         if (!password) {
             return res.status(400).json({ message: "password is required" });
         }
-        const user = await User.findOne({ number: number });
+        const user = await User.findOne({ number: number, isActive: true });
         if (!user) {
             return res.status(400).json({ message: "User not found" });
         }
